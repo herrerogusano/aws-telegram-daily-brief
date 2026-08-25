@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-08-25T07:00:00+00:00",
+  "region_scope": ["eu-west-1"],
+  "inventory": {"total_resources": 3, "services": {"lambda": 1, "s3": 2}},
+  "activity": {},
+  "cost_risk": {},
+  "warnings": [],
+  "errors": [],
+  "coverage": {"services_queried": []}
+}
