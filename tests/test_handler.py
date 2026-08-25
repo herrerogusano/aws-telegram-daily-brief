@@ -34,8 +34,8 @@ class FakeFactory:
 def test_handler_returns_safe_structured_payload(monkeypatch: Any) -> None:
     monkeypatch.setattr(handler, "AwsClientFactory", FakeFactory)
     response = handler.lambda_handler({}, None)
-    assert response["status"] == "partial"
-    assert response["brief"]["generated_by"] == "deterministic"
+    assert response["status"] == "success"
+    assert response["summary_source"] == "deterministic"
 
 
 def test_handler_does_not_need_event_shape(monkeypatch: Any) -> None:
