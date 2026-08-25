@@ -12,6 +12,7 @@ dependencies = [
 [project.scripts]
 telegram-test = "aws_telegram_daily_brief.notifications.telegram_test:main"
 daily-report = "aws_telegram_daily_brief.reporting.daily_report_cli:main"
+daily-brief = "aws_telegram_daily_brief.reporting.daily_brief_cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]
