@@ -1,4 +1,4 @@
-"""Environment-backed configuration without secret resolution."""
+"""Strict environment configuration. Secret values are never runtime environment values."""
 
 from __future__ import annotations
 
@@ -7,67 +7,81 @@ from dataclasses import dataclass
 
 from aws_telegram_daily_brief.errors import ConfigurationError
 
+MAX_BEDROCK_OUTPUT_TOKENS = 250
+MAX_BEDROCK_INVOCATIONS_PER_RUN = 1
+MAX_TELEGRAM_MESSAGES_PER_RUN = 1
+MAX_TELEGRAM_TIMEOUT_SECONDS = 30.0
+DEFAULT_TELEGRAM_TIMEOUT_SECONDS = 10.0
+BEDROCK_MODEL_ID = "amazon.nova-micro-v1:0"
+
+
+def _flag(name: str, default: bool) -> bool:
+    value = os.getenv(name, str(default).lower()).strip().lower()
+    if value not in {"true", "false"}:
+        raise ConfigurationError(f"{name} must be true or false")
+    return value == "true"
+
+
+def _required(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise ConfigurationError(f"{name} is missing or invalid")
+    return value
+
+
+def _positive_float(name: str, default: float, maximum: float) -> float:
+    try:
+        value = float(os.getenv(name, str(default)).strip())
+    except ValueError:
+        raise ConfigurationError(f"{name} is missing or invalid") from None
+    if not 0 < value <= maximum:
+        raise ConfigurationError(f"{name} is missing or invalid")
+    return value
+
 
 @dataclass(frozen=True, slots=True)
 class Settings:
-    """Safe runtime settings; secret values are intentionally not loaded here."""
-
-    aws_region: str = "eu-west-1"
-    report_timezone: str = "Europe/Madrid"
-    log_level: str = "INFO"
-    telegram_chat_id: str | None = None
-    telegram_bot_token_secret_name: str | None = None
-    bedrock_model_id: str | None = None
+    aws_region: str
+    report_timezone: str
+    log_level: str
+    telegram_enabled: bool
+    telegram_config_parameter_name: str | None
+    telegram_timeout_seconds: float
 
     @classmethod
     def from_environment(cls) -> Settings:
-        region = os.getenv("AWS_REGION", "eu-west-1").strip()
+        region = os.getenv("AWS_REPORT_REGION", os.getenv("AWS_REGION", "eu-west-1")).strip()
         timezone = os.getenv("REPORT_TIMEZONE", "Europe/Madrid").strip()
         log_level = os.getenv("LOG_LEVEL", "INFO").strip().upper()
-        if not region:
-            raise ConfigurationError("AWS_REGION must not be empty")
-        if not timezone:
-            raise ConfigurationError("REPORT_TIMEZONE must not be empty")
+        enabled = _flag("TELEGRAM_ENABLED", False)
+        parameter = os.getenv("TELEGRAM_CONFIG_PARAMETER_NAME", "").strip() or None
+        if not region or not timezone or log_level not in {"DEBUG", "INFO", "WARNING", "ERROR"}:
+            raise ConfigurationError("safe runtime configuration is invalid")
+        if enabled and parameter is None:
+            raise ConfigurationError("TELEGRAM_CONFIG_PARAMETER_NAME is missing or invalid")
         return cls(
-            aws_region=region,
-            report_timezone=timezone,
-            log_level=log_level,
-            telegram_chat_id=_optional_environment_value("TELEGRAM_CHAT_ID"),
-            telegram_bot_token_secret_name=_optional_environment_value(
-                "TELEGRAM_BOT_TOKEN_SECRET_NAME"
-            ),
-            bedrock_model_id=_optional_environment_value("BEDROCK_MODEL_ID"),
+            region,
+            timezone,
+            log_level,
+            enabled,
+            parameter,
+            _positive_float("TELEGRAM_TIMEOUT_SECONDS", 10, MAX_TELEGRAM_TIMEOUT_SECONDS),
         )
-
-
-def _optional_environment_value(name: str) -> str | None:
-    value = os.getenv(name)
-    return value.strip() if value and value.strip() else None
 
 
 @dataclass(frozen=True, slots=True)
 class TelegramSettings:
-    """Local Telegram settings, loaded only by the explicit test entry point."""
-
     bot_token: str
     chat_id: str
-    timeout_seconds: float = 10.0
+    timeout_seconds: float = DEFAULT_TELEGRAM_TIMEOUT_SECONDS
 
     @classmethod
     def from_environment(cls) -> TelegramSettings:
-        token = _required_environment_value("TELEGRAM_BOT_TOKEN")
-        chat_id = _required_environment_value("TELEGRAM_CHAT_ID")
+        token = _required("TELEGRAM_BOT_TOKEN")
+        chat_id = _required("TELEGRAM_CHAT_ID")
         if not _is_valid_chat_id(chat_id):
             raise ConfigurationError("TELEGRAM_CHAT_ID is missing or invalid")
-        timeout = _telegram_timeout_from_environment()
-        return cls(bot_token=token, chat_id=chat_id, timeout_seconds=timeout)
-
-
-def _required_environment_value(name: str) -> str:
-    value = _optional_environment_value(name)
-    if value is None:
-        raise ConfigurationError(f"{name} is missing or invalid")
-    return value
+        return cls(token, chat_id, _positive_float("TELEGRAM_TIMEOUT_SECONDS", 10, 30))
 
 
 def _is_valid_chat_id(chat_id: str) -> bool:
@@ -75,36 +89,32 @@ def _is_valid_chat_id(chat_id: str) -> bool:
     return bool(numeric_value) and numeric_value.isdecimal() and int(chat_id) != 0
 
 
-def _telegram_timeout_from_environment() -> float:
-    raw_timeout = os.getenv("TELEGRAM_TIMEOUT_SECONDS", "10").strip()
-    try:
-        timeout = float(raw_timeout)
-    except ValueError as error:
-        raise ConfigurationError("TELEGRAM_TIMEOUT_SECONDS is missing or invalid") from error
-    if not 0 < timeout <= 60:
-        raise ConfigurationError("TELEGRAM_TIMEOUT_SECONDS is missing or invalid")
-    return timeout
-
-
 @dataclass(frozen=True, slots=True)
 class BedrockSettings:
-    """Explicitly opt-in, bounded configuration for one Bedrock inference."""
-
     enabled: bool = False
-    model_id: str = "amazon.nova-micro-v1:0"
+    model_id: str = BEDROCK_MODEL_ID
     region: str = "eu-west-1"
-    max_output_tokens: int = 250
+    max_output_tokens: int = MAX_BEDROCK_OUTPUT_TOKENS
     temperature: float = 0.1
     timeout_seconds: float = 15.0
 
     @classmethod
     def from_environment(cls) -> BedrockSettings:
-        enabled = os.getenv("BEDROCK_ENABLED", "false").strip().lower() == "true"
-        return cls(
-            enabled=enabled,
-            model_id=os.getenv("BEDROCK_MODEL_ID", "amazon.nova-micro-v1:0").strip(),
-            region=os.getenv("BEDROCK_REGION", "eu-west-1").strip(),
-            max_output_tokens=int(os.getenv("BEDROCK_MAX_OUTPUT_TOKENS", "250")),
-            temperature=float(os.getenv("BEDROCK_TEMPERATURE", "0.1")),
-            timeout_seconds=float(os.getenv("BEDROCK_TIMEOUT_SECONDS", "15")),
-        )
+        enabled = _flag("BEDROCK_ENABLED", False)
+        model_id = os.getenv("BEDROCK_MODEL_ID", BEDROCK_MODEL_ID).strip()
+        region = os.getenv("BEDROCK_REGION", "eu-west-1").strip()
+        try:
+            max_tokens = int(os.getenv("BEDROCK_MAX_OUTPUT_TOKENS", "250"))
+            temperature = float(os.getenv("BEDROCK_TEMPERATURE", "0.1"))
+        except ValueError:
+            raise ConfigurationError("Bedrock configuration is invalid") from None
+        timeout = _positive_float("BEDROCK_TIMEOUT_SECONDS", 15, 30)
+        if (
+            not model_id
+            or model_id != BEDROCK_MODEL_ID
+            or not region
+            or not 1 <= max_tokens <= MAX_BEDROCK_OUTPUT_TOKENS
+            or not 0 <= temperature <= 1
+        ):
+            raise ConfigurationError("Bedrock configuration is invalid")
+        return cls(enabled, model_id, region, max_tokens, temperature, timeout)

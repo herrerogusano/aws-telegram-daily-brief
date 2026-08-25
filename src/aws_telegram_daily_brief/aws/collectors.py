@@ -134,7 +134,7 @@ class SkippedCollector:
         spec = operation_for(self.service, self.operation)
         status: CoverageStatus = (
             "skipped_by_cost_policy"
-            if spec.cost_classification == "potentially_billable"
+            if spec.classification == "sensitive_read"
             else "skipped_unknown_cost"
         )
         return ServiceReport(

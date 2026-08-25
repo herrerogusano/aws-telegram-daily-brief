@@ -1,9 +1,16 @@
-"""Small, audited allowlist for automatic AWS report collection."""
+"""Audited manifest of every AWS SDK operation reachable by the runtime."""
 
 from dataclasses import dataclass
 from typing import Literal
 
-CostClassification = Literal["free_verified", "potentially_billable", "unknown", "write"]
+OperationClassification = Literal[
+    "free_verified_read",
+    "controlled_billable",
+    "operational_secret_read",
+    "write",
+    "sensitive_read",
+    "unknown",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -11,100 +18,131 @@ class AwsOperation:
     service: str
     operation: str
     method: str
-    purpose: str
-    access: Literal["read", "write"]
-    cost_classification: CostClassification
-    sensitive_data_risk: Literal["low", "high"]
+    iam_action: str
+    component: str
+    classification: OperationClassification
+    required: bool
     verified_at: str
 
     @property
     def automatic_allowed(self) -> bool:
-        return (
-            self.access == "read"
-            and self.cost_classification == "free_verified"
-            and self.sensitive_data_risk == "low"
-        )
+        return self.classification == "free_verified_read"
+
+
+def _op(
+    service: str,
+    operation: str,
+    method: str,
+    iam_action: str,
+    component: str,
+    classification: OperationClassification,
+    required: bool,
+    verified_at: str,
+) -> AwsOperation:
+    return AwsOperation(
+        service, operation, method, iam_action, component, classification, required, verified_at
+    )
 
 
 OPERATIONS = (
-    AwsOperation(
+    _op(
         "lambda",
         "ListFunctions",
         "list_functions",
-        "daily_inventory",
-        "read",
-        "free_verified",
-        "low",
+        "lambda:ListFunctions",
+        "LambdaCollector",
+        "free_verified_read",
+        True,
         "2026-07-23",
     ),
-    AwsOperation(
+    _op(
         "ec2",
         "DescribeInstances",
         "describe_instances",
-        "daily_inventory",
-        "read",
-        "free_verified",
-        "low",
+        "ec2:DescribeInstances",
+        "Ec2Collector",
+        "free_verified_read",
+        True,
         "2026-07-23",
     ),
-    AwsOperation(
+    _op(
         "ec2",
         "DescribeVpcs",
         "describe_vpcs",
-        "daily_inventory",
-        "read",
-        "free_verified",
-        "low",
+        "ec2:DescribeVpcs",
+        "Ec2Collector",
+        "free_verified_read",
+        True,
         "2026-07-23",
     ),
-    AwsOperation(
+    _op(
         "ec2",
         "DescribeSubnets",
         "describe_subnets",
-        "daily_inventory",
-        "read",
-        "free_verified",
-        "low",
+        "ec2:DescribeSubnets",
+        "Ec2Collector",
+        "free_verified_read",
+        True,
         "2026-07-23",
     ),
-    AwsOperation(
+    _op(
         "ec2",
         "DescribeRouteTables",
         "describe_route_tables",
-        "daily_inventory",
-        "read",
-        "free_verified",
-        "low",
+        "ec2:DescribeRouteTables",
+        "Ec2Collector",
+        "free_verified_read",
+        True,
         "2026-07-23",
     ),
-    AwsOperation(
+    _op(
         "ec2",
         "DescribeInternetGateways",
         "describe_internet_gateways",
-        "daily_inventory",
-        "read",
-        "free_verified",
-        "low",
+        "ec2:DescribeInternetGateways",
+        "Ec2Collector",
+        "free_verified_read",
+        True,
         "2026-07-23",
     ),
-    AwsOperation(
+    _op(
+        "ssm",
+        "GetParameter",
+        "get_parameter",
+        "ssm:GetParameter",
+        "ParameterStoreTelegramConfigProvider",
+        "operational_secret_read",
+        True,
+        "2026-08-25",
+    ),
+    _op(
+        "bedrock-runtime",
+        "Converse",
+        "converse",
+        "bedrock:InvokeModel",
+        "BedrockSummarizer",
+        "controlled_billable",
+        False,
+        "2026-08-25",
+    ),
+    _op(
         "s3",
         "ListBuckets",
         "list_buckets",
-        "daily_inventory",
-        "read",
-        "potentially_billable",
-        "low",
+        "s3:ListAllMyBuckets",
+        "SkippedCollector",
+        "sensitive_read",
+        False,
         "2026-07-23",
     ),
-    AwsOperation(
+    _op(
         "cloudformation",
         "DescribeStacks",
         "describe_stacks",
-        "daily_inventory",
-        "read",
+        "cloudformation:DescribeStacks",
+        "SkippedCollector",
         "unknown",
-        "low",
+        False,
         "",
     ),
 )

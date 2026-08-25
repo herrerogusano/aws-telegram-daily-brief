@@ -8,6 +8,8 @@ from typing import Any
 
 from botocore.exceptions import BotoCoreError, ClientError
 
+from aws_telegram_daily_brief.aws.guard import AutomaticSafetyGuard
+from aws_telegram_daily_brief.aws.operations import operation_for
 from aws_telegram_daily_brief.errors import ConfigurationError
 
 
@@ -18,18 +20,21 @@ class TelegramConfig:
 
 
 class ParameterStoreTelegramConfigProvider:
-    def __init__(self, client: Any, parameter_name: str) -> None:
-        self.client, self.parameter_name = client, parameter_name
+    def __init__(self, client: Any, parameter_name: str, guard: AutomaticSafetyGuard) -> None:
+        self.client, self.parameter_name, self.guard = client, parameter_name, guard
         self._cached: TelegramConfig | None = None
 
     def get_config(self) -> TelegramConfig:
         if self._cached is not None:
             return self._cached
         try:
-            value = self.client.get_parameter(Name=self.parameter_name, WithDecryption=True)[
-                "Parameter"
-            ]["Value"]
-        except (ClientError, BotoCoreError, KeyError, TypeError):
+            value = self.guard.execute_secret_read(
+                self.client,
+                operation_for("ssm", "GetParameter"),
+                Name=self.parameter_name,
+                WithDecryption=True,
+            )["Parameter"]["Value"]
+        except (ClientError, BotoCoreError, KeyError, TypeError, ValueError):
             raise ConfigurationError("Telegram configuration is unavailable") from None
         try:
             data = json.loads(value)
