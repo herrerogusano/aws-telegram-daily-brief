@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Telegram Daily Brief — Phase 0 bootstrap only
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 256
+    Tracing: PassThrough
+    LoggingConfig:
+      LogFormat: JSON
+
+Resources:
+  DailyBriefFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: aws_telegram_daily_brief.handler.lambda_handler
+      Description: Phase 0 placeholder for the AWS daily brief.
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          REPORT_TIMEZONE: Europe/Madrid
+          LOG_LEVEL: INFO
