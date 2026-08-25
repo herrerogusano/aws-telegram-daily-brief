@@ -28,6 +28,12 @@ The scheduled workflow only runs manifest-listed free verified reads. Unknown, s
 - Telegram uses a fixed HTTPS endpoint, bounded timeout, no redirects/proxies, no retries, and one message per run.
 - One Scheduler run is configured for 09:00 Europe/Madrid, flexible window off and zero retries. Budget remains an optional alert-only recommendation and is not created.
 
+## Reliability and observability
+
+Every execution has a UUID, a Europe/Madrid report date, safe structured lifecycle logs and a compact health response. Collector and notification failures produce partial success; Bedrock falls back deterministically. No component retries application work automatically. Internal time budgets skip Bedrock or Telegram before the Lambda timeout becomes likely.
+
+CloudWatch's native Lambda and Scheduler metrics are the first monitoring layer. No custom metrics, alarms, dashboard, DLQ or DynamoDB idempotency store has been created: alarms and persistent state require a separate cost and infrastructure approval. Delivery is at-most-one per execution, but exactly-once Telegram delivery cannot be guaranteed across independent services.
+
 ## Development
 
 ```powershell
