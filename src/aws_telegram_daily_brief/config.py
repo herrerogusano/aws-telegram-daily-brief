@@ -84,3 +84,27 @@ def _telegram_timeout_from_environment() -> float:
     if not 0 < timeout <= 60:
         raise ConfigurationError("TELEGRAM_TIMEOUT_SECONDS is missing or invalid")
     return timeout
+
+
+@dataclass(frozen=True, slots=True)
+class BedrockSettings:
+    """Explicitly opt-in, bounded configuration for one Bedrock inference."""
+
+    enabled: bool = False
+    model_id: str = "amazon.nova-micro-v1:0"
+    region: str = "eu-west-1"
+    max_output_tokens: int = 250
+    temperature: float = 0.1
+    timeout_seconds: float = 15.0
+
+    @classmethod
+    def from_environment(cls) -> BedrockSettings:
+        enabled = os.getenv("BEDROCK_ENABLED", "false").strip().lower() == "true"
+        return cls(
+            enabled=enabled,
+            model_id=os.getenv("BEDROCK_MODEL_ID", "amazon.nova-micro-v1:0").strip(),
+            region=os.getenv("BEDROCK_REGION", "eu-west-1").strip(),
+            max_output_tokens=int(os.getenv("BEDROCK_MAX_OUTPUT_TOKENS", "250")),
+            temperature=float(os.getenv("BEDROCK_TEMPERATURE", "0.1")),
+            timeout_seconds=float(os.getenv("BEDROCK_TIMEOUT_SECONDS", "15")),
+        )

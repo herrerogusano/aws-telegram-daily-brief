@@ -22,3 +22,17 @@ class AwsClientFactory:
                 connect_timeout=5, read_timeout=10, retries={"max_attempts": 2, "mode": "standard"}
             ),
         )
+
+    def create_bedrock_runtime(self, *, timeout_seconds: float) -> Any:
+        """Create a bounded inference client with no SDK retry attempts."""
+        options: dict[str, str] = {"region_name": self._region}
+        if self._profile_name:
+            options["profile_name"] = self._profile_name
+        return boto3.Session(**options).client(
+            "bedrock-runtime",
+            config=Config(
+                connect_timeout=5,
+                read_timeout=timeout_seconds,
+                retries={"max_attempts": 0, "mode": "standard"},
+            ),
+        )

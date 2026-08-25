@@ -12,6 +12,10 @@ class AwsCollectionError(RuntimeError):
 class BedrockSummaryError(RuntimeError):
     """Raised when the optional Bedrock summarizer fails."""
 
+    def __init__(self, kind: str) -> None:
+        self.kind = kind
+        super().__init__(f"Bedrock summary failed ({kind})")
+
 
 class TelegramNotificationError(RuntimeError):
     """Raised when the Telegram notification boundary fails."""
