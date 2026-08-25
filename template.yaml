@@ -38,3 +38,17 @@ Resources:
           BEDROCK_TIMEOUT_SECONDS: '15'
           REPORT_LANGUAGE: es
           LOG_LEVEL: INFO
+      Events:
+        DailyMorningSchedule:
+          Type: ScheduleV2
+          Properties:
+            Name: aws-telegram-daily-brief-morning
+            ScheduleExpression: cron(0 9 * * ? *)
+            ScheduleExpressionTimezone: Europe/Madrid
+            State: ENABLED
+            FlexibleTimeWindow:
+              Mode: "OFF"
+            RetryPolicy:
+              MaximumRetryAttempts: 0
+              MaximumEventAgeInSeconds: 3600
+            Input: '{"source":"eventbridge-scheduler","mode":"daily"}'
