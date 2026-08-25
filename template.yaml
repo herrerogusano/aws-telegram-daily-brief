@@ -27,6 +27,9 @@ Resources:
               Action: bedrock:InvokeModel
               Resource: arn:aws:bedrock:eu-west-1::foundation-model/amazon.nova-micro-v1:0
             - Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/telegram-daily-brief/telegram/config
+            - Effect: Allow
               Action: [logs:CreateLogStream, logs:PutLogEvents]
               Resource: !GetAtt DailyBriefLogGroup.Arn
       Environment:
@@ -38,6 +41,8 @@ Resources:
           BEDROCK_TIMEOUT_SECONDS: '15'
           REPORT_LANGUAGE: es
           LOG_LEVEL: INFO
+          TELEGRAM_ENABLED: 'true'
+          TELEGRAM_CONFIG_PARAMETER_NAME: /telegram-daily-brief/telegram/config
       Events:
         DailyMorningSchedule:
           Type: ScheduleV2
