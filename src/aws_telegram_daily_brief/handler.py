@@ -5,16 +5,36 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from aws_telegram_daily_brief.aws.client_factory import AwsClientFactory
+from aws_telegram_daily_brief.aws.collectors import Ec2Collector, LambdaCollector, SkippedCollector
+from aws_telegram_daily_brief.aws.guard import AutomaticSafetyGuard
 from aws_telegram_daily_brief.config import Settings
+from aws_telegram_daily_brief.llm.summarizer import DeterministicSummarizer
+from aws_telegram_daily_brief.reporting.builder import DailyReportBuilder
 
 logger = logging.getLogger(__name__)
 
 
-def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, str]:
-    """Return a safe bootstrap response without contacting AWS or Telegram."""
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    """Build an AWS brief without Telegram or scheduler coupling."""
     settings = Settings.from_environment()
-    logger.info(
-        "daily_brief_initialized",
-        extra={"region": settings.aws_region, "timezone": settings.report_timezone},
+    factory = AwsClientFactory(settings.aws_region)
+    guard = AutomaticSafetyGuard()
+    reports = (
+        LambdaCollector(factory.create("lambda"), settings.aws_region, guard).collect(),
+        Ec2Collector(factory.create("ec2"), settings.aws_region, guard).collect(),
+        SkippedCollector("s3", "ListBuckets").collect(),
+        SkippedCollector("cloudformation", "DescribeStacks").collect(),
     )
-    return {"status": "ok", "message": "AWS Telegram Daily Brief initialized"}
+    report = DailyReportBuilder(settings.aws_region).build(reports)
+    brief = DeterministicSummarizer().summarize(report)
+    status = "partial" if report.summary.warnings else "ok"
+    return {
+        "status": status,
+        "report": report.to_dict()["summary"],
+        "brief": {
+            "generated_by": brief.generated_by,
+            "fallback_used": brief.fallback_used,
+            "text": brief.text,
+        },
+    }

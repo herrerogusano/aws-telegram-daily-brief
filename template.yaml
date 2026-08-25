@@ -1,26 +1,40 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: AWS Telegram Daily Brief — Phase 0 bootstrap only
-
-Globals:
-  Function:
-    Runtime: python3.12
-    Timeout: 30
-    MemorySize: 256
-    Tracing: PassThrough
-    LoggingConfig:
-      LogFormat: JSON
-
+Description: AWS Telegram Daily Brief manual Lambda (no schedule or Telegram)
 Resources:
+  DailyBriefLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 14
   DailyBriefFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
       Handler: aws_telegram_daily_brief.handler.lambda_handler
-      Description: Phase 0 placeholder for the AWS daily brief.
+      Runtime: python3.12
+      Architectures: [x86_64]
+      Timeout: 60
+      MemorySize: 256
       Policies:
-        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: [lambda:ListFunctions]
+              Resource: '*'
+            - Effect: Allow
+              Action: [ec2:DescribeInstances, ec2:DescribeVpcs, ec2:DescribeSubnets, ec2:DescribeRouteTables, ec2:DescribeInternetGateways]
+              Resource: '*'
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: arn:aws:bedrock:eu-west-1::foundation-model/amazon.nova-micro-v1:0
+            - Effect: Allow
+              Action: [logs:CreateLogStream, logs:PutLogEvents]
+              Resource: !GetAtt DailyBriefLogGroup.Arn
       Environment:
         Variables:
-          REPORT_TIMEZONE: Europe/Madrid
+          AWS_REPORT_REGION: eu-west-1
+          BEDROCK_ENABLED: 'false'
+          BEDROCK_REGION: eu-west-1
+          BEDROCK_MAX_OUTPUT_TOKENS: '250'
+          BEDROCK_TIMEOUT_SECONDS: '15'
+          REPORT_LANGUAGE: es
           LOG_LEVEL: INFO
