@@ -43,3 +43,44 @@ class Settings:
 def _optional_environment_value(name: str) -> str | None:
     value = os.getenv(name)
     return value.strip() if value and value.strip() else None
+
+
+@dataclass(frozen=True, slots=True)
+class TelegramSettings:
+    """Local Telegram settings, loaded only by the explicit test entry point."""
+
+    bot_token: str
+    chat_id: str
+    timeout_seconds: float = 10.0
+
+    @classmethod
+    def from_environment(cls) -> TelegramSettings:
+        token = _required_environment_value("TELEGRAM_BOT_TOKEN")
+        chat_id = _required_environment_value("TELEGRAM_CHAT_ID")
+        if not _is_valid_chat_id(chat_id):
+            raise ConfigurationError("TELEGRAM_CHAT_ID is missing or invalid")
+        timeout = _telegram_timeout_from_environment()
+        return cls(bot_token=token, chat_id=chat_id, timeout_seconds=timeout)
+
+
+def _required_environment_value(name: str) -> str:
+    value = _optional_environment_value(name)
+    if value is None:
+        raise ConfigurationError(f"{name} is missing or invalid")
+    return value
+
+
+def _is_valid_chat_id(chat_id: str) -> bool:
+    numeric_value = chat_id[1:] if chat_id.startswith("-") else chat_id
+    return bool(numeric_value) and numeric_value.isdecimal() and int(chat_id) != 0
+
+
+def _telegram_timeout_from_environment() -> float:
+    raw_timeout = os.getenv("TELEGRAM_TIMEOUT_SECONDS", "10").strip()
+    try:
+        timeout = float(raw_timeout)
+    except ValueError as error:
+        raise ConfigurationError("TELEGRAM_TIMEOUT_SECONDS is missing or invalid") from error
+    if not 0 < timeout <= 60:
+        raise ConfigurationError("TELEGRAM_TIMEOUT_SECONDS is missing or invalid")
+    return timeout

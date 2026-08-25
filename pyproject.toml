@@ -6,7 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.43.52",
+    "httpx>=0.28.1",
 ]
+
+[project.scripts]
+telegram-test = "aws_telegram_daily_brief.notifications.telegram_test:main"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]
