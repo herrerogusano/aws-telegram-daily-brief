@@ -19,7 +19,7 @@ class AwsClientFactory:
         return session.client(
             service,
             config=Config(
-                connect_timeout=5, read_timeout=10, retries={"max_attempts": 2, "mode": "standard"}
+                connect_timeout=5, read_timeout=10, retries={"max_attempts": 0, "mode": "standard"}
             ),
         )
 

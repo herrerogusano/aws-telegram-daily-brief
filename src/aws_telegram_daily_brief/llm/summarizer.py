@@ -12,6 +12,8 @@ from botocore.exceptions import (
     ReadTimeoutError,
 )
 
+from aws_telegram_daily_brief.aws.guard import AutomaticSafetyGuard
+from aws_telegram_daily_brief.aws.operations import operation_for
 from aws_telegram_daily_brief.config import BedrockSettings
 from aws_telegram_daily_brief.errors import BedrockSummaryError
 from aws_telegram_daily_brief.models.aws_report import AwsDailyReport
@@ -59,7 +61,11 @@ class DeterministicSummarizer:
 
 class BedrockSummarizer:
     def __init__(
-        self, settings: BedrockSettings, client: Any, prompt_builder: PromptBuilder | None = None
+        self,
+        settings: BedrockSettings,
+        client: Any,
+        prompt_builder: PromptBuilder | None = None,
+        guard: AutomaticSafetyGuard | None = None,
     ) -> None:
         self.settings, self.client, self.prompt_builder = (
             settings,
@@ -67,6 +73,7 @@ class BedrockSummarizer:
             prompt_builder or PromptBuilder(),
         )
         self.invocations = 0
+        self.guard = guard or AutomaticSafetyGuard()
 
     def summarize(self, report: AwsDailyReport) -> DailyBrief:
         if not self.settings.enabled:
@@ -78,7 +85,9 @@ class BedrockSummarizer:
         if self.invocations > 1:
             raise BedrockSummaryError("invocation_limit")
         try:
-            response = self.client.converse(
+            response = self.guard.execute_controlled_billable(
+                self.client,
+                operation_for("bedrock-runtime", "Converse"),
                 modelId=self.settings.model_id,
                 system=[{"text": self.prompt_builder.system_prompt}],
                 messages=[{"role": "user", "content": [{"text": prompt}]}],

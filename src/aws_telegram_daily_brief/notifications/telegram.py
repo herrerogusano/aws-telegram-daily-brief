@@ -9,7 +9,7 @@ from typing import Any, Protocol
 
 import httpx
 
-from aws_telegram_daily_brief.config import TelegramSettings
+from aws_telegram_daily_brief.config import MAX_TELEGRAM_MESSAGES_PER_RUN, TelegramSettings
 from aws_telegram_daily_brief.errors import TelegramNotificationError
 
 MAX_TELEGRAM_MESSAGE_LENGTH = 4096
@@ -36,8 +36,9 @@ class TelegramNotifier:
 
     def __init__(self, settings: TelegramSettings, client: HttpClient | None = None) -> None:
         self._settings = settings
-        self._client = client or httpx.Client()
+        self._client = client or httpx.Client(follow_redirects=False, trust_env=False)
         self._owns_client = client is None
+        self._messages_sent = 0
 
     def close(self) -> None:
         """Close the internally created HTTP client, if any."""
@@ -51,6 +52,8 @@ class TelegramNotifier:
             raise TelegramNotificationError("invalid_message")
         if len(text) > MAX_TELEGRAM_MESSAGE_LENGTH:
             raise TelegramNotificationError("message_too_long")
+        if self._messages_sent >= MAX_TELEGRAM_MESSAGES_PER_RUN:
+            raise TelegramNotificationError("message_limit")
 
         logger.info("telegram_send_started", extra={"message_length": len(text)})
         try:
@@ -78,6 +81,7 @@ class TelegramNotifier:
             raise TelegramNotificationError("invalid_response", response.status_code)
 
         logger.info("telegram_send_succeeded", extra={"status_code": response.status_code})
+        self._messages_sent += 1
         return TelegramSendResult(
             success=True, message_id=message_id, status_code=response.status_code
         )

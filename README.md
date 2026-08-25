@@ -6,7 +6,7 @@ A small serverless service that will send a concise daily view of an AWS account
 
 ## Architecture
 
-`EventBridge (future) -> Lambda -> AWS APIs via Boto3 -> DailyAwsReport -> Bedrock or deterministic formatter -> Telegram`.
+`EventBridge Scheduler -> Lambda -> Safety Guard -> normalized AWS report -> Bedrock or deterministic formatter -> Telegram`.
 
 ## Current status
 
@@ -18,7 +18,15 @@ Python 3.12, uv, Boto3, httpx, AWS SAM, AWS Lambda, pytest, Ruff, and mypy. The 
 
 ## Safety
 
-The scheduled workflow will only run operations confirmed as free and read-only. Potentially billable, unknown-cost, and write operations are excluded. Cost Explorer is not part of the automated report. Secrets are never committed.
+The scheduled workflow only runs manifest-listed free verified reads. Unknown, sensitive, and write operations are blocked. Cost Explorer is excluded and secrets are never committed.
+
+## Security and cost controls
+
+- Minimum IAM: fixed inventory reads, one named Parameter Store read, and optional model-specific Bedrock access.
+- Telegram credentials are a Standard SecureString reference decrypted only in memory with `alias/aws/ssm`; no secret value is in SAM or Lambda environment variables.
+- Bedrock is disabled by default, limited to Nova Micro, 250 output tokens and one invocation per run; retries are zero.
+- Telegram uses a fixed HTTPS endpoint, bounded timeout, no redirects/proxies, no retries, and one message per run.
+- One Scheduler run is configured for 09:00 Europe/Madrid, flexible window off and zero retries. Budget remains an optional alert-only recommendation and is not created.
 
 ## Development
 
