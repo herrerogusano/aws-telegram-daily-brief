@@ -11,6 +11,7 @@ dependencies = [
 
 [project.scripts]
 telegram-test = "aws_telegram_daily_brief.notifications.telegram_test:main"
+daily-report = "aws_telegram_daily_brief.reporting.daily_report_cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]
@@ -38,4 +39,8 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.12"
 files = ["src", "tests"]
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["boto3", "botocore.*"]
+ignore_missing_imports = true
 
