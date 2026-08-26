@@ -1,0 +1,63 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: aws-telegram-daily-brief-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Validate and deploy production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Install locked dependencies
+        run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check .
+      - name: Check formatting
+        run: uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy
+      - name: Test
+        run: uv run pytest -q
+      - name: Set up SAM CLI
+        uses: aws-actions/setup-sam@v3
+      - name: Validate SAM template
+        run: sam validate --lint
+      - name: Build SAM application
+        run: sam build --build-dir .aws-sam/deploy-build
+      - name: Configure temporary AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v6.1.3
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: github-actions-aws-telegram-daily-brief
+          role-duration-seconds: 1800
+      - name: Deploy through CloudFormation
+        run: >-
+          sam deploy
+          --template-file .aws-sam/deploy-build/template.yaml
+          --stack-name ${{ vars.SAM_STACK_NAME }}
+          --region ${{ vars.AWS_REGION }}
+          --s3-bucket ${{ vars.AWS_SAM_ARTIFACT_BUCKET }}
+          --capabilities CAPABILITY_IAM
+          --no-confirm-changeset
+          --no-fail-on-empty-changeset

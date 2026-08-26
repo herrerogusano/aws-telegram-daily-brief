@@ -34,6 +34,10 @@ Every execution has a UUID, a Europe/Madrid report date, safe structured lifecyc
 
 CloudWatch's native Lambda and Scheduler metrics are the first monitoring layer. No custom metrics, alarms, dashboard, DLQ or DynamoDB idempotency store has been created: alarms and persistent state require a separate cost and infrastructure approval. Delivery is at-most-one per execution, but exactly-once Telegram delivery cannot be guaranteed across independent services.
 
+## CI/CD
+
+Pull requests to the real default branch, `master`, run locked dependency installation, linting, formatting, typing, tests and SAM validation/build only. Merges to `master` repeat those gates and then deploy with SAM through GitHub OIDC temporary credentials. The dedicated deployment role and artifact bucket are declared separately in `infra/bootstrap/`; bootstrap, repository variables and workflow activation require explicit approval. CI/CD never receives Telegram values, invokes Lambda, calls Bedrock or sends Telegram messages.
+
 ## Development
 
 ```powershell

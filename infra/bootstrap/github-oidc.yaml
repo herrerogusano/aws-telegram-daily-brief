@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: GitHub OIDC deployment role and artifact bucket for AWS Telegram Daily Brief
+
+Parameters:
+  GitHubOidcProviderArn:
+    Type: String
+    Description: Existing token.actions.githubusercontent.com provider ARN; it is never created here.
+  GitHubRepository:
+    Type: String
+    Default: herrerogusano/aws-telegram-daily-brief
+  DeploymentBranch:
+    Type: String
+    Default: master
+  MainStackName:
+    Type: String
+    Default: aws-telegram-daily-brief
+
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-deployment-artifacts
+            Status: Enabled
+            ExpirationInDays: 30
+  GitHubDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: aws-telegram-daily-brief-github-deploy
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepository}:ref:refs/heads/${DeploymentBranch}
+      Policies:
+        - PolicyName: deploy-aws-telegram-daily-brief
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:CreateStack
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStacks
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:UpdateStack
+                Resource: !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${MainStackName}/*
+              - Effect: Allow
+                Action: cloudformation:ValidateTemplate
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub ${ArtifactBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                Resource: !GetAtt ArtifactBucket.Arn
+              - Effect: Allow
+                Action:
+                  - iam:AttachRolePolicy
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:DeleteRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:GetRole
+                  - iam:PassRole
+                  - iam:PutRolePolicy
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${MainStackName}-*
+              - Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                Resource: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${MainStackName}-*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:PutRetentionPolicy
+                  - logs:TagResource
+                  - logs:UntagResource
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${MainStackName}-*
+              - Effect: Allow
+                Action: logs:DescribeLogGroups
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - scheduler:CreateSchedule
+                  - scheduler:DeleteSchedule
+                  - scheduler:GetSchedule
+                  - scheduler:UpdateSchedule
+                Resource: !Sub arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${MainStackName}-*
+
+Outputs:
+  DeploymentRoleArn:
+    Value: !GetAtt GitHubDeployRole.Arn
+  ArtifactBucketName:
+    Value: !Ref ArtifactBucket
