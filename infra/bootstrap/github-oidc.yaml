@@ -5,9 +5,12 @@ Parameters:
   GitHubOidcProviderArn:
     Type: String
     Description: Existing token.actions.githubusercontent.com provider ARN; it is never created here.
-  GitHubRepository:
+  GitHubOwnerSubject:
     Type: String
-    Default: herrerogusano/aws-telegram-daily-brief
+    Default: herrerogusano@112490238
+  GitHubRepositorySubject:
+    Type: String
+    Default: aws-telegram-daily-brief@1346224823
   DeploymentBranch:
     Type: String
     Default: master
@@ -48,7 +51,7 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepository}:ref:refs/heads/${DeploymentBranch}
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOwnerSubject}/${GitHubRepositorySubject}:ref:refs/heads/${DeploymentBranch}
       Policies:
         - PolicyName: deploy-aws-telegram-daily-brief
           PolicyDocument:
@@ -69,6 +72,9 @@ Resources:
               - Effect: Allow
                 Action: cloudformation:ValidateTemplate
                 Resource: '*'
+              - Effect: Allow
+                Action: cloudformation:CreateChangeSet
+                Resource: !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31
               - Effect: Allow
                 Action:
                   - s3:GetObject
