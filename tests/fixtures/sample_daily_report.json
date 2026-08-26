@@ -1,10 +1,29 @@
 {
   "generated_at": "2026-08-25T07:00:00+00:00",
-  "region_scope": ["eu-west-1"],
-  "inventory": {"total_resources": 3, "services": {"lambda": 1, "s3": 2}},
-  "activity": {},
-  "cost_risk": {},
-  "warnings": [],
-  "errors": [],
-  "coverage": {"services_queried": []}
+  "regions": ["eu-west-1"],
+  "summary": {
+    "resources_detected": 3,
+    "services_checked": 2,
+    "services_skipped": 2,
+    "warnings": 0
+  },
+  "services": [
+    {
+      "service": "lambda",
+      "status": "checked",
+      "resources": [
+        {
+          "service": "lambda",
+          "resource_type": "function",
+          "name": "demo-daily-brief",
+          "region": "eu-west-1",
+          "state": "Active",
+          "details": {"runtime": "python3.12"},
+          "cost_risk_indicators": []
+        }
+      ],
+      "reason": null,
+      "error_kind": null
+    }
+  ]
 }

@@ -5,10 +5,12 @@ Resources:
   DailyBriefLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
+      LogGroupName: /aws/lambda/aws-telegram-daily-brief
       RetentionInDays: 14
   DailyBriefFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: aws-telegram-daily-brief
       CodeUri: src/
       Handler: aws_telegram_daily_brief.handler.lambda_handler
       Runtime: python3.12

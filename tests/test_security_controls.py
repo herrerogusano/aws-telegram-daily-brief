@@ -117,6 +117,9 @@ def test_template_is_restrictive_and_has_one_schedule() -> None:
     assert not any(value in template for value in forbidden)
     assert template.count("Type: ScheduleV2") == 1
     assert "MaximumRetryAttempts: 0" in template
+    assert "FunctionName: aws-telegram-daily-brief" in template
+    assert "LogGroupName: /aws/lambda/aws-telegram-daily-brief" in template
+    assert "RetentionInDays: 14" in template
 
 
 def test_malicious_event_cannot_raise_limits(monkeypatch: pytest.MonkeyPatch) -> None:

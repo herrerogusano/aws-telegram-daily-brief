@@ -2,9 +2,9 @@
 
 from aws_telegram_daily_brief.models.aws_report import (
     AwsDailyReport,
+    DailyReportSummary,
     ResourceSummary,
     ServiceReport,
 )
-from aws_telegram_daily_brief.models.daily_report import DailyAwsReport
 
-__all__ = ["AwsDailyReport", "DailyAwsReport", "ResourceSummary", "ServiceReport"]
+__all__ = ["AwsDailyReport", "DailyReportSummary", "ResourceSummary", "ServiceReport"]
