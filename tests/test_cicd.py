@@ -20,6 +20,8 @@ def test_deploy_is_master_only_and_uses_oidc_after_quality_gates() -> None:
     assert "id-token: write" in workflow
     assert "role-to-assume:" in workflow
     assert "environment: production" not in workflow
+    assert "Verify OIDC audience and subject" in workflow
+    assert "print(token)" not in workflow
     assert "aws-access-key-id:" not in workflow
     assert "aws-secret-access-key:" not in workflow
     assert "sam deploy" in workflow
