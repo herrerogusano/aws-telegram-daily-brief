@@ -36,7 +36,7 @@ CloudWatch's native Lambda and Scheduler metrics are the first monitoring layer.
 
 ## CI/CD
 
-Pull requests to the real default branch, `master`, run locked dependency installation, linting, formatting, typing, tests and SAM validation/build only. Merges to `master` repeat those gates and then deploy with SAM through GitHub OIDC temporary credentials. The dedicated deployment role and artifact bucket are declared separately in `infra/bootstrap/`; bootstrap, repository variables and workflow activation require explicit approval. CI/CD never receives Telegram values, invokes Lambda, calls Bedrock or sends Telegram messages.
+Pull requests to the real default branch, `master`, run locked dependency installation, linting, formatting, typing, tests and SAM validation/build only. Merges to `master` repeat those gates and then deploy with SAM through GitHub OIDC temporary credentials. OIDC is restricted directly to the `master` subject; no GitHub Environment is used because it would replace that branch claim. The dedicated deployment role and artifact bucket are declared separately in `infra/bootstrap/`. CI/CD never receives Telegram values, invokes Lambda, calls Bedrock or sends Telegram messages.
 
 ## Development
 
