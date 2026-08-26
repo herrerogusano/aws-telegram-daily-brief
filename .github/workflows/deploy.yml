@@ -20,9 +20,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Set up uv
@@ -43,23 +43,6 @@ jobs:
         run: sam validate --lint
       - name: Build SAM application
         run: sam build --build-dir .aws-sam/deploy-build
-      - name: Verify OIDC audience and subject
-        run: |
-          python - <<'PY'
-          import base64
-          import json
-          import os
-          from urllib.request import Request, urlopen
-
-          request = Request(
-              f"{os.environ['ACTIONS_ID_TOKEN_REQUEST_URL']}&audience=sts.amazonaws.com",
-              headers={"Authorization": f"Bearer {os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']}"},
-          )
-          token = json.load(urlopen(request))['value']
-          payload = token.split('.')[1] + '=='
-          claims = json.loads(base64.urlsafe_b64decode(payload))
-          print(json.dumps({key: claims[key] for key in ('aud', 'sub')}, sort_keys=True))
-          PY
       - name: Configure temporary AWS credentials through OIDC
         uses: aws-actions/configure-aws-credentials@v6.1.3
         with:

@@ -20,8 +20,8 @@ def test_deploy_is_master_only_and_uses_oidc_after_quality_gates() -> None:
     assert "id-token: write" in workflow
     assert "role-to-assume:" in workflow
     assert "environment: production" not in workflow
-    assert "Verify OIDC audience and subject" in workflow
-    assert "print(token)" not in workflow
+    assert "Verify OIDC audience and subject" not in workflow
+    assert "ACTIONS_ID_TOKEN_REQUEST_TOKEN" not in workflow
     assert "aws-access-key-id:" not in workflow
     assert "aws-secret-access-key:" not in workflow
     assert "sam deploy" in workflow
@@ -32,7 +32,10 @@ def test_deploy_is_master_only_and_uses_oidc_after_quality_gates() -> None:
 def test_bootstrap_reuses_provider_and_limits_trust_to_repository_branch() -> None:
     bootstrap = Path("infra/bootstrap/github-oidc.yaml").read_text(encoding="utf-8")
     assert "AWS::IAM::OIDCProvider" not in bootstrap
-    assert "repo:${GitHubRepository}:ref:refs/heads/${DeploymentBranch}" in bootstrap
+    assert (
+        "repo:${GitHubOwnerSubject}/${GitHubRepositorySubject}:ref:refs/heads/${DeploymentBranch}"
+        in bootstrap
+    )
     assert "sts.amazonaws.com" in bootstrap
     assert "AdministratorAccess" not in bootstrap
     assert 'Action: "*"' not in bootstrap
