@@ -1,4 +1,4 @@
-"""Small, explicit error vocabulary for future boundary layers."""
+"""Small, explicit error vocabulary for external boundaries."""
 
 
 class ConfigurationError(ValueError):

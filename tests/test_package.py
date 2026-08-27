@@ -1,5 +1,5 @@
-from aws_telegram_daily_brief import DailyAwsReport
+from aws_telegram_daily_brief import AwsDailyReport
 
 
 def test_package_exports_daily_report() -> None:
-    assert DailyAwsReport.__name__ == "DailyAwsReport"
+    assert AwsDailyReport.__name__ == "AwsDailyReport"

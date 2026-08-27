@@ -1,5 +1,5 @@
-"""AWS Telegram Daily Brief package."""
+"""Public package interface for AWS Telegram Daily Brief."""
 
-from aws_telegram_daily_brief.models.daily_report import DailyAwsReport
+from aws_telegram_daily_brief.models import AwsDailyReport
 
-__all__ = ["DailyAwsReport"]
+__all__ = ["AwsDailyReport"]
