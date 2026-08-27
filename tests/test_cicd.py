@@ -41,3 +41,16 @@ def test_bootstrap_reuses_provider_and_limits_trust_to_repository_branch() -> No
     assert 'Action: "*"' not in bootstrap
     assert "ssm:GetParameter" not in bootstrap
     assert "bedrock:InvokeModel" not in bootstrap
+
+
+def test_deploy_role_allows_exact_and_generated_runtime_resource_names() -> None:
+    bootstrap = Path("infra/bootstrap/github-oidc.yaml").read_text(encoding="utf-8")
+    exact_lambda = "function:${MainStackName}\n"
+    generated_lambda = "function:${MainStackName}-*\n"
+    exact_log_group = "log-group:/aws/lambda/${MainStackName}\n"
+    generated_log_group = "log-group:/aws/lambda/${MainStackName}-*\n"
+
+    assert exact_lambda in bootstrap
+    assert generated_lambda in bootstrap
+    assert exact_log_group in bootstrap
+    assert generated_log_group in bootstrap
