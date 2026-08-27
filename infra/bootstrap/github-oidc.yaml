@@ -108,7 +108,9 @@ Resources:
                   - lambda:UntagResource
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
-                Resource: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${MainStackName}-*
+                Resource:
+                  - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${MainStackName}
+                  - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${MainStackName}-*
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -116,7 +118,9 @@ Resources:
                   - logs:PutRetentionPolicy
                   - logs:TagResource
                   - logs:UntagResource
-                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${MainStackName}-*
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${MainStackName}
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${MainStackName}-*
               - Effect: Allow
                 Action: logs:DescribeLogGroups
                 Resource: '*'
