@@ -1,8 +1,15 @@
 # AWS Telegram Daily Brief
 
 [![CI](https://github.com/herrerogusano/aws-telegram-daily-brief/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/herrerogusano/aws-telegram-daily-brief/actions/workflows/ci.yml)
+[![Deploy](https://github.com/herrerogusano/aws-telegram-daily-brief/actions/workflows/deploy.yml/badge.svg?branch=master)](https://github.com/herrerogusano/aws-telegram-daily-brief/actions/workflows/deploy.yml)
 
 A small, deployed serverless job that inventories a deliberately limited set of AWS resources every morning, builds a normalized operational brief, and delivers it to Telegram. It uses Python, Lambda, EventBridge Scheduler, Boto3, optional Amazon Bedrock, AWS SAM, and GitHub Actions with OIDC.
+
+![Synthetic Telegram brief preview](docs/assets/telegram-brief-preview.svg)
+
+The preview is synthetic: it demonstrates the delivered format without exposing
+an account identifier, ARN, resource name, bot token, chat ID, or production
+message.
 
 ## What it does
 
